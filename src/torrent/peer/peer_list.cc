@@ -114,7 +114,11 @@ PeerList::insert_address(const sockaddr* sa, int flags) {
 
   PeerInfo* peerInfo = new PeerInfo(sa);
   peerInfo->set_listen_port(address->port());
-  peerInfo->set_flags(m_ipv4_table.at(address->sa_inet()->address_h()) & PeerInfo::mask_ip_table);
+
+  //note ipv4 addresses stored in host byte order in ipv4_table so they are comparable. ntohl has been called
+  uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
+  if(m_ipv4_table.defined(host_byte_order_ipv4_addr))
+    peerInfo->set_flags(m_ipv4_table.at(host_byte_order_ipv4_addr) & PeerInfo::mask_ip_table);
   
   manager->client_list()->retrieve_unknown(&peerInfo->mutable_client_info());
 
@@ -206,7 +210,14 @@ PeerList::connected(const sockaddr* sa, int flags) {
   if (!socket_address_key::is_comparable(sa))
     return NULL;
 
-  int filter_value = m_ipv4_table.at(address->sa_inet()->address_h());
+
+  //note ipv4 addresses stored in host byte order in ipv4_table so they are comparable. ntohl has been called
+  uint32_t host_byte_order_ipv4_addr = address->sa_inet()->address_h();
+  int filter_value = 0;
+  if(m_ipv4_table.defined(host_byte_order_ipv4_addr))
+    filter_value = m_ipv4_table.at(host_byte_order_ipv4_addr);
+
+
 
   // We should also remove any PeerInfo objects already for this
   // address.
