@@ -44,6 +44,8 @@
 #include "download/available_list.h"
 #include "torrent/peer/client_list.h"
 
+#include "torrent/utils/log.h"
+
 #include "exceptions.h"
 #include "globals.h"
 #include "manager.h"
@@ -219,11 +221,17 @@ PeerList::connected(const sockaddr* sa, int flags) {
 
 
 
+
+  if ((filter_value & PeerInfo::flag_unwanted)) {
+    char ipv4_str[INET_ADDRSTRLEN];
+    uint32_t net_order_addr = htonl(host_byte_order_ipv4_addr);
+    inet_ntop(AF_INET, &net_order_addr, ipv4_str, INET_ADDRSTRLEN);
+    lt_log_print(LOG_PEER_INFO, "Peer %s is unwanted: preventing connection", ipv4_str);
+    return NULL;
+  }
+  
   // We should also remove any PeerInfo objects already for this
   // address.
-  if ((filter_value & PeerInfo::flag_unwanted))
-    return NULL;
-
   PeerInfo* peerInfo;
   range_type range = base_type::equal_range(sa);
 
